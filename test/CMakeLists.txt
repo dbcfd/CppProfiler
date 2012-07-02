@@ -1,0 +1,2 @@
+include_directories(resources)
+add_subdirectory(src)
