@@ -77,7 +77,7 @@ namespace profiling {
     }
 
 
-    ProfilerInterface::ProfilerInterface() : programName(0), commandLine(0), globalStart(Timer::getticks())
+    ProfilerInterface::ProfilerInterface() : programName(0), commandLine(0), globalStart(Timer::getticks()), main(0)
     {
         // get an idea of how long timer calls / rdtsc takes
         const u32 reps = 1000;
@@ -163,7 +163,14 @@ namespace profiling {
         lock();
 
         ThreadInformation& threadInfo = getThreadInformation();
-        threadInfo.root = tmp;
+        if(0 == main)
+        {
+            threadInfo.root = tmp;
+        }
+        else
+        {
+            threadInfo.root = main->root;
+        }
         threadInfo.current = tmp;
 
         threadInfo.lock();

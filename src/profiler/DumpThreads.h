@@ -40,6 +40,8 @@ namespace profiling
 
             // print the totals, use the summed total of ticks to adjust percentages
             Profiler()->globalDuration = sumTicks;
+            packedThreads.Clear();
+            Profiler()->pack(accumulate, packedThreads);
             dumper.PrintAccumulated( accumulate );		
             dumper.Finish();
 

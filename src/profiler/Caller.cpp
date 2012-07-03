@@ -19,6 +19,7 @@ namespace profiling
         f64 ms = Timer::ms( ticks ), globalpct = average( ticks * 100, Profiler()->globalDuration );
         f64 childms = Timer::ms( item->mChildTicks ), selfms = ( ms - childms ), avg = item->mTimer.avgms(), selfavg = average( selfms, item->mTimer.calls );
         if ( !item->GetParent() )
+        {
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\">%u</td><td class=\"number\">%0.4f (%3.0f%%)</td><td class=\"number\">%0.4f</td><td class=\"number\">%0.4f</td><td class=\"number\">%0.4f</td></tr>\n", 
             item->mName, 
             item->mTimer.calls,
@@ -28,16 +29,20 @@ namespace profiling
             selfms,
             selfavg
             );
+        }
         else
+        {
+            Caller* rootCaller = Profiler()->getRootCaller();
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\" style=\"background-color:%s\">%u</td><td class=\"number\" style=\"background-color:%s\">%0.4f (%3.0f%%)</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td></tr>\n", 
             item->mName, 
-            mRoot->maxStats.color( mRoot, Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
-            mRoot->maxStats.color( mRoot, Max::Ms, ms ), ms,
+            rootCaller->maxStats.color( Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
+            rootCaller->maxStats.color( Max::Ms, ms ), ms,
             globalpct,
-            mRoot->maxStats.color( mRoot, Max::Avg, avg ), avg,
-            mRoot->maxStats.color( mRoot, Max::SelfMs, selfms ), selfms,
-            mRoot->maxStats.color( mRoot, Max::SelfAvg, selfavg ), selfavg
+            rootCaller->maxStats.color( Max::Avg, avg ), avg,
+            rootCaller->maxStats.color( Max::SelfMs, selfms ), selfms,
+            rootCaller->maxStats.color( Max::SelfAvg, selfavg ), selfavg
             );
+        }
     }
 
     void Caller::FormatHtmlTop::operator()( Caller *item, bool islast ) const {
@@ -54,12 +59,13 @@ namespace profiling
                 avg
                 );
         } else {
+            Caller* rootCaller = Profiler()->getRootCaller();
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\" style=\"background-color:%s\">%u</td><td class=\"number\" style=\"background-color:%s\">%0.4f (%.0f%%)</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td></tr>\n", 
                 item->mName, 
-                mRoot->maxStats.color( mRoot,  Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
-                mRoot->maxStats.color( mRoot, Max::Ms, ms ), ms,
+                rootCaller->maxStats.color( Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
+                rootCaller->maxStats.color( Max::Ms, ms ), ms,
                 globalpct,
-                mRoot->maxStats.color( mRoot, Max::Avg, avg ), avg
+                rootCaller->maxStats.color( Max::Avg, avg ), avg
                 );
         }
     }
