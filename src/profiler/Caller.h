@@ -6,6 +6,8 @@
 #include "profiler/HtmlColorRamp.h"
 #include "profiler/Timer.h"
 
+#include <string>
+
 namespace profiling
 {
     /*
@@ -21,7 +23,7 @@ namespace profiling
             struct AddToNewBuckets {
                 AddToNewBuckets( Caller **buckets, u32 bucket_count ) : mBuckets(buckets), mBucketCount(bucket_count) {}
                 void operator()( Caller *item ) {
-                    FindEmptyChildSlot( mBuckets, mBucketCount, item->mName ) = item;
+                    FindEmptyChildSlot( mBuckets, mBucketCount, item->mName.c_str() ) = item;
                 }
                 Caller **mBuckets;
                 u32 mBucketCount;
@@ -192,14 +194,14 @@ namespace profiling
         */
 
         // we're guaranteed to be null because of calloc. ONLY create Callers with "new"!
-        Caller( const char *name, Caller *parent = NULL );
+        Caller( const std::string& name, Caller *parent = NULL );
 
         ~Caller();
 
         void CopyToListNonEmpty( Buffer<Caller *> &list );
 
-        Caller* Find( const char *name );
-        Caller* Create(const char* name);
+        Caller* Find( const std::string& name );
+        Caller* Create(const std::string& name);
 
         template< class Mapto >
         void ForEachByRef( Mapto &mapto ) {
@@ -227,7 +229,7 @@ namespace profiling
 
         Caller *GetParent();
         Timer &GetTimer();
-        const char *GetName() const;
+        const std::string& GetName() const;
         bool IsActive() const;
 
         void Print( u32 indent = 0, bool islast = false );
@@ -250,12 +252,12 @@ namespace profiling
         ColorRamp mColors;
 
     protected:
-        static Caller *&FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const char *name );
-        static u32 GetBucket( const char *name, u32 bucket_count );
+        static Caller *&FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const std::string& name );
+        static u32 GetBucket( const std::string& name, u32 bucket_count );
 
         void EnsureCapacity( u32 capacity );
 
-        const char *mName;
+        std::string mName;
         Timer mTimer;
         u32 mBucketCount, mNumChildren;
         Caller **mBuckets, *mParent;

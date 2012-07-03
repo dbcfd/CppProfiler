@@ -158,24 +158,28 @@ namespace profiling {
 
 
     void ProfilerInterface::enterThread( const char *name ) {
-        Caller *tmp = new Caller( name );
-
+        Caller* created = 0;
         lock();
 
         ThreadInformation& threadInfo = getThreadInformation();
+
+        threadInfo.lock();
+
         if(0 == main)
         {
-            threadInfo.root = tmp;
+            created = new Caller( name );
+            threadInfo.root = created;
         }
         else
         {
+            created = main->root->Create(name);
             threadInfo.root = main->root;
         }
-        threadInfo.current = tmp;
+        threadInfo.current = created;
 
-        threadInfo.lock();
-        tmp->Start();
-        tmp->SetActive( true );
+        created->Start();
+        created->SetActive( true );
+
         threadInfo.unlock();
 
         unlock();
@@ -201,36 +205,41 @@ namespace profiling {
         ThreadInformation& threadInfo = getThreadInformation();
 
         Caller *parent = threadInfo.current;
+        Caller *active = 0;
         if ( !parent )
         {
             char buffer[100];
             sprintf_s(buffer, "%lu", GetCurrentThreadId());
             enterThread(buffer);
+            active = threadInfo.current;
         }
         else
         {
-            Caller *active = parent->Find( name );
+            active = parent->Find( name );
             if(0 == active)
             {
-                threadInfo.lock();
                 active = parent->Create(name);
-                threadInfo.unlock();
             }
-            active->Start();
-            threadInfo.current = active;
-        }
+        }        
+        
+        active->Start();
+        threadInfo.lock();
+        threadInfo.current = active;
+        threadInfo.unlock();
     }
 
     void ProfilerInterface::exitCaller() {
         ThreadInformation& threadInfo = getThreadInformation();
 
-        Caller *active = threadInfo.current;
-        if ( !active )
-            return;
-
-        active->Stop();
         threadInfo.lock();
-        threadInfo.current = active->GetParent();
+
+        Caller *active = threadInfo.current;
+        if (active )
+        {
+            active->Stop();
+            threadInfo.current = active->GetParent();
+        }
+
         threadInfo.unlock();
     }
 

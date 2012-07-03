@@ -8,7 +8,7 @@ namespace profiling
         u64 ticks = item->mTimer.ticks;
         f64 ms = Timer::ms( ticks );
         printf( "%s %.2f mcycles, %d calls, %.0f cycles avg, %.2f%%: %s\n", 
-            mPrefix, ms, item->mTimer.calls, item->mTimer.avg(), average( ticks * 100, Profiler()->globalDuration ), item->mName );
+            mPrefix, ms, item->mTimer.calls, item->mTimer.avg(), average( ticks * 100, Profiler()->globalDuration ), item->mName.c_str() );
     }
 
     void Caller::FormatHtml::operator()( Caller *item ) const {
@@ -21,7 +21,7 @@ namespace profiling
         if ( !item->GetParent() )
         {
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\">%u</td><td class=\"number\">%0.4f (%3.0f%%)</td><td class=\"number\">%0.4f</td><td class=\"number\">%0.4f</td><td class=\"number\">%0.4f</td></tr>\n", 
-            item->mName, 
+            item->mName.c_str(), 
             item->mTimer.calls,
             ms,
             globalpct,
@@ -34,7 +34,7 @@ namespace profiling
         {
             Caller* rootCaller = Profiler()->getRootCaller();
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\" style=\"background-color:%s\">%u</td><td class=\"number\" style=\"background-color:%s\">%0.4f (%3.0f%%)</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td></tr>\n", 
-            item->mName, 
+            item->mName.c_str(), 
             rootCaller->maxStats.color( Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
             rootCaller->maxStats.color( Max::Ms, ms ), ms,
             globalpct,
@@ -52,7 +52,7 @@ namespace profiling
         f64 ms = Timer::ms( ticks ), globalpct = average( ticks * 100, Profiler()->globalDuration ), avg = item->mTimer.avgms();
         if ( !item->GetParent() ) {
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\">%u</td><td class=\"number\">%0.4f (%.0f%%)</td><td class=\"number\">%0.4f</td></tr>\n", 
-                item->mName, 
+                item->mName.c_str(), 
                 item->mTimer.calls,
                 ms,
                 globalpct,
@@ -61,7 +61,7 @@ namespace profiling
         } else {
             Caller* rootCaller = Profiler()->getRootCaller();
             fprintf( mFile, "<td class=\"text\">%s</td></tr></table></td><td class=\"number\" style=\"background-color:%s\">%u</td><td class=\"number\" style=\"background-color:%s\">%0.4f (%.0f%%)</td><td class=\"number\" style=\"background-color:%s\">%0.4f</td></tr>\n", 
-                item->mName, 
+                item->mName.c_str(), 
                 rootCaller->maxStats.color( Max::Calls, item->mTimer.calls ),  item->mTimer.calls,
                 rootCaller->maxStats.color( Max::Ms, ms ), ms,
                 globalpct,
@@ -72,8 +72,7 @@ namespace profiling
 
 
     // we're guaranteed to be null because of calloc. ONLY create Callers with "new"!
-    Caller::Caller( const char *name, Caller *parent ) : mFormatter(64), mHtmlFormatter(64) { 
-        mName = name;
+    Caller::Caller( const std::string& name, Caller *parent ) : mFormatter(64), mHtmlFormatter(64), mName(name) { 
         mParent = parent;
         Resize( 2 ); // mBuckets must always exist and mBucketCount >= 2!
     }
@@ -91,7 +90,7 @@ namespace profiling
                 list.Push( mBuckets[ i ] );
     }
 
-    Caller *Caller::Find( const char *name ) {
+    Caller *Caller::Find( const std::string& name ) {
         Caller* ret = 0;
         if(name == mName)
         {
@@ -112,7 +111,7 @@ namespace profiling
         return ret;
     }
 
-    Caller* Caller::Create(const char* name)
+    Caller* Caller::Create(const std::string& name)
     {
         EnsureCapacity( ++mNumChildren );
         Caller *&slot = FindEmptyChildSlot( mBuckets, mBucketCount, name );
@@ -128,7 +127,7 @@ namespace profiling
         return mTimer;
     }
 
-    const char * Caller::GetName() const {
+    const std::string& Caller::GetName() const {
         return mName;
     }
 
@@ -250,7 +249,7 @@ namespace profiling
         free( p );
     }
 
-    Caller *& Caller::FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const char *name ) {
+    Caller *& Caller::FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const std::string& name ) {
         u32 index = ( GetBucket( name, bucket_count ) ), mask = ( bucket_count - 1 );
         Caller **caller = &buckets[index];
         for ( ; *caller; caller = &buckets[index & mask] )
@@ -258,8 +257,9 @@ namespace profiling
         return *caller;
     }
 
-    u32 Caller::GetBucket( const char *name, u32 bucket_count ) {
-        return u32( ( ( (size_t )name >> 5 ) /* * 2654435761 */ ) & ( bucket_count - 1 ) );
+    u32 Caller::GetBucket( const std::string& name, u32 bucket_count ) {
+        const char* cName = name.c_str();
+        return u32( ( ( (size_t )cName >> 5 ) /* * 2654435761 */ ) & ( bucket_count - 1 ) );
     }
 
     void Caller::EnsureCapacity( u32 capacity ) {
