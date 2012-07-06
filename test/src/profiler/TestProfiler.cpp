@@ -31,13 +31,15 @@ void divideFunction(int maxValueToProcess)
 
 TEST(PROFILER_TEST, NO_THREADING_TEST)
 {
-    PROFILE_SCOPED();
+    {
+        PROFILE_SCOPED();
 
-    multiplyFunction(1000);
-    divideFunction(1000);
+        multiplyFunction(1000);
+        divideFunction(1000);
 
-    multiplyFunction(500);
-    divideFunction(500);
+        multiplyFunction(500);
+        divideFunction(500);
+    }
 
     std::string output = PROFILER_DUMPSTRING();
 
