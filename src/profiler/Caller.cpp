@@ -74,20 +74,23 @@ namespace profiling
     // we're guaranteed to be null because of calloc. ONLY create Callers with "new"!
     Caller::Caller( const std::string& name, Caller *parent ) : mFormatter(64), mHtmlFormatter(64), mName(name) { 
         mParent = parent;
-        Resize( 2 ); // mBuckets must always exist and mBucketCount >= 2!
     }
 
     Caller::~Caller() { 
-        ForEach( foreach::Deleter() );
-        free( mBuckets );
+        Reset();
     }
 
     void Caller::CopyToListNonEmpty( Buffer<Caller *> &list ) {
         list.Clear();
 
-        for ( u32 i = 0; i < mBucketCount; ++i )
-            if ( mBuckets[ i ] && !mBuckets[ i ]->GetTimer().IsEmpty() )
-                list.Push( mBuckets[ i ] );
+        for(Buckets::const_iterator iter = mBuckets.begin(); iter != mBuckets.end(); ++iter)
+        {
+            Caller* caller = iter->second;
+            if(!caller->GetTimer().IsEmpty())
+            {
+                list.Push(caller);
+            }
+        }
     }
 
     Caller *Caller::Find( const std::string& name ) {
@@ -98,14 +101,10 @@ namespace profiling
         }
         else
         {
-            u32 index = ( GetBucket( name, mBucketCount ) ), mask = ( mBucketCount - 1 );
-            for ( Caller *caller = mBuckets[index]; caller; caller = mBuckets[index & mask] ) {
-                if ( caller->mName == name )
-                {
-                    ret = caller;
-                }
-
-                index = ( index + 1 );
+            Buckets::const_iterator iter = mBuckets.find(name);
+            if(mBuckets.end() != iter)
+            {
+                ret = iter->second;
             }
         }
         return ret;
@@ -113,10 +112,9 @@ namespace profiling
 
     Caller* Caller::Create(const std::string& name)
     {
-        EnsureCapacity( ++mNumChildren );
-        Caller *&slot = FindEmptyChildSlot( mBuckets, mBucketCount, name );
-        slot = new Caller( name, this );
-        return slot;
+        Caller* caller = new Caller( name, this );
+        mBuckets[name] = caller;
+        return caller;
     }
 
     inline Caller *Caller::GetParent() { 
@@ -165,6 +163,11 @@ namespace profiling
         Buffer<Caller *> children( mNumChildren );
         CopyToListNonEmpty( children );
 
+        for(u32 i = 1; i < indent; ++i)
+        {
+            mHtmlFormatter.Push("&nbsp;");
+        }
+
         if ( !indent ) {
             mHtmlFormatter.Push( "[]" );
         } else if ( children.Size() ) {
@@ -203,20 +206,12 @@ namespace profiling
         sorted.ForEach( Format(">"), nitems );
     }
 
-    void Caller::Resize( u32 new_size ) {
-        new_size = ( new_size < mBucketCount ) ? mBucketCount << 1 : nextpow2( new_size - 1 );
-        Caller **new_buckets = (Caller **)calloc( new_size, sizeof( Caller* ) );
-        ForEach( foreach::AddToNewBuckets( new_buckets, new_size ) );
-
-        free( mBuckets );
-        mBuckets = ( new_buckets );
-        mBucketCount = ( new_size );
-    }
-
     void Caller::Reset() {
-        ForEach( foreach::Deleter() );
-        zeroarray( mBuckets, mBucketCount );
-        mNumChildren = ( 0 );
+        for(Buckets::iterator iter = mBuckets.begin(); iter != mBuckets.end(); ++iter)
+        {
+            delete iter->second;
+        }
+        mBuckets.clear();
         mTimer.Reset();			
     }
 
@@ -247,24 +242,5 @@ namespace profiling
 
     void Caller::operator delete ( void *p ) { 
         free( p );
-    }
-
-    Caller *& Caller::FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const std::string& name ) {
-        u32 index = ( GetBucket( name, bucket_count ) ), mask = ( bucket_count - 1 );
-        Caller **caller = &buckets[index];
-        for ( ; *caller; caller = &buckets[index & mask] )
-            index = ( index + 1 );
-        return *caller;
-    }
-
-    u32 Caller::GetBucket( const std::string& name, u32 bucket_count ) {
-        const char* cName = name.c_str();
-        return u32( ( ( (size_t )cName >> 5 ) /* * 2654435761 */ ) & ( bucket_count - 1 ) );
-    }
-
-    void Caller::EnsureCapacity( u32 capacity ) {
-        if ( capacity < ( mBucketCount / 2 ) )
-            return;
-        Resize( capacity );
     }
 }

@@ -7,6 +7,7 @@
 #include "profiler/Timer.h"
 
 #include <string>
+#include <map>
 
 namespace profiling
 {
@@ -18,25 +19,9 @@ namespace profiling
 #pragma pack(push,1)
     class Caller {
     public:
+        typedef std::map<std::string, Caller*> Buckets;
+
         struct foreach {
-            // Adds each Caller to the specified buckets
-            struct AddToNewBuckets {
-                AddToNewBuckets( Caller **buckets, u32 bucket_count ) : mBuckets(buckets), mBucketCount(bucket_count) {}
-                void operator()( Caller *item ) {
-                    FindEmptyChildSlot( mBuckets, mBucketCount, item->mName.c_str() ) = item;
-                }
-                Caller **mBuckets;
-                u32 mBucketCount;
-            };
-
-
-            // Destructs a Caller
-            struct Deleter { 
-                void operator()( Caller *item ) { 
-                    delete item;
-                } 
-            };
-
             // Merges a Caller with the root
             struct Merger {
                 Merger( Caller *_mergeInto ) : mergeInto(_mergeInto) {}
@@ -205,16 +190,22 @@ namespace profiling
 
         template< class Mapto >
         void ForEachByRef( Mapto &mapto ) {
-            for ( u32 i = 0; i < mBucketCount; ++i )
-                if ( mBuckets[ i ] )
-                    mapto( mBuckets[ i ] );
+            for(Buckets::const_iterator iter = mBuckets.begin(); iter != mBuckets.end(); ++iter)
+            {
+                mapto(iter->second);
+            }
         }
 
         template< class Mapto >
         void ForEachByRefNonEmpty( Mapto &mapto ) {
-            for ( u32 i = 0; i < mBucketCount; ++i )
-                if ( mBuckets[ i ] && !mBuckets[ i ]->GetTimer().IsEmpty() )
-                    mapto( mBuckets[ i ] );
+            for(Buckets::const_iterator iter = mBuckets.begin(); iter != mBuckets.end(); ++iter)
+            {
+                Caller* caller = iter->second;
+                if(!caller->GetTimer().IsEmpty())
+                {
+                    mapto(caller);
+                }
+            }
         }
 
         template< class Mapto > 
@@ -236,7 +227,6 @@ namespace profiling
         void PrintHtml( FILE *f, u32 indent = 0, bool islast = false );
         void SaveTopStats( u32 nitems, std::stringstream& stream );
         void PrintTopStats( u32 nitems );
-        void Resize( u32 new_size );
         void Reset();
         void SetActive( bool active );
         void SetParent( Caller *parent );
@@ -252,15 +242,11 @@ namespace profiling
         ColorRamp mColors;
 
     protected:
-        static Caller *&FindEmptyChildSlot( Caller **buckets, u32 bucket_count, const std::string& name );
-        static u32 GetBucket( const std::string& name, u32 bucket_count );
-
-        void EnsureCapacity( u32 capacity );
-
         std::string mName;
         Timer mTimer;
-        u32 mBucketCount, mNumChildren;
-        Caller **mBuckets, *mParent;
+        u32 mNumChildren;
+        Caller *mParent;
+        Buckets mBuckets;
 
         bool mActive;
         u64 mChildTicks;
