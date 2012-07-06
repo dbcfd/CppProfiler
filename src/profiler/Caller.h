@@ -32,7 +32,7 @@ namespace profiling
                     {
                         child = mergeInto->Create(item->GetName());
                     }
-                    child->GetTimer() += item->GetTimer();
+                    child->GetTimer() = item->GetTimer();
                     item->ForEachNonEmpty( Merger( child ) );
                 }
                 Caller *mergeInto;
@@ -125,7 +125,7 @@ namespace profiling
                 Caller* totalitem = mTotals.Find( item->mName );
                 if(0 != totalitem)
                 {
-                    totalitem->mTimer.ticks += selfticks;
+                    //totalitem->mTimer.ticks += selfticks;
                     totalitem->mTimer.calls += item->mTimer.calls;
                     totalitem->SetParent( item->GetParent() );
                 }
