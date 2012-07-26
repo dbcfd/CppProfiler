@@ -77,6 +77,7 @@
 #define PROFILER_DUMPSTRING()           std::string()
 #endif
 
+#if defined(ENABLE_PROFILER)
 namespace profiling {
     /*
     =============
@@ -176,3 +177,5 @@ namespace profiling {
         ~ScopedThread() { PROFILE_THREAD_STOP() }
     };
 }; // namespace Profiler
+
+#endif
