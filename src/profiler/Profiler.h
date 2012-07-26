@@ -1,10 +1,12 @@
 #pragma once
 
-#include <map>
+#if defined(ENABLE_PROFILER)
 
 #include "profiler/Platform.h"
 #include "profiler/Buffer.h"
 #include "profiler/CASLock.h"
+
+#include <map>
 
 #undef noinline
 #undef fastcall
@@ -16,7 +18,6 @@
 
 #define PROFILE_FUNCTION() __FUNCSIG__
 
-#if defined(ENABLE_PROFILER)
 // thread
 #define PROFILE_THREAD_START_RAW( text )   profiling::Profiler()->threadenter( text );
 #define PROFILE_THREAD_START()             PROFILE_THREAD_START_RAW( PROFILE_FUNCTION()  )
