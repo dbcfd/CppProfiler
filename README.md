@@ -4,10 +4,14 @@ Based on Andrew's High Performance C++ Profiler (http://floodyberry.wordpress.co
 
 ## Build Instructions
  * Install CMake (http://cmake.org/cmake/resources/software.html). 
- * Switch to the location your have the Profiler source code at.
+ * Open a command prompt (unless you're using the CMake gui)
+ * Switch to the location you have the Profiler source code at.
  * cd to the build directory
  * Run CMake
-  * If using Visual Studio a standard cmake command is "cmake .. -G"Visual Studio 9 2008" -DLINK_STATICALLY:BOOL=ON" to build with Visual Studio 2008, and link the library statically
+
+If using Visual Studio a standard cmake command is 
+>> cmake .. -G"Visual Studio 9 2008" -DLINK_STATICALLY:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release
+This will build with Visual Studio 2008, and link the library statically. It will also build in Release mode.
 
 ## Basic Usage
 Set compiler flag ENABLE_PROFILER for any build type you wish to profile. If using inline or linking statically, set USE_PROFILER_STATICALLY.
