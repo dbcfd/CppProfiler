@@ -11,6 +11,7 @@ Based on Andrew's High Performance C++ Profiler (http://floodyberry.wordpress.co
 
 If using Visual Studio a standard cmake command is 
 >> cmake .. -G"Visual Studio 9 2008" -DLINK_STATICALLY:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=Release
+
 This will build with Visual Studio 2008, and link the library statically. It will also build in Release mode.
 
 ## Basic Usage
